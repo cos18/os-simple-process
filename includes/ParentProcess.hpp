@@ -4,12 +4,25 @@
 
 class ParentProcess {
 	private:
-		int time_quantum;
-		int time_log;
+		int						time_quantum;
+		int						time_log;
+		ChildProcess			*plist;
+
+		queue<ChildProcess*>	ready_queue;
+		ChildProcess			*curr_cpu_burst;
+		queue<ChildProcess*>	io_queue;
+		ChildProcess			*curr_io_burst;
+
+		int						gtimer;
 	
 	public:
-		ParentProcess(int argc, char **argv);
+
+		ParentProcess();
+		~ParentProcess(void);
+
+		void init(int argc, char **argv);
 		void run(void);
+		void listener(void);
 
 		class ParamException: public std::exception {
 			public:

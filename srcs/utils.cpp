@@ -1,6 +1,6 @@
 #include "scheduler.hpp"
 
-void print_info(void) {
+void printInfo(void) {
 	cout << "Usage : ./scheduler (time quantum) (logging time tick)\n\n";
 	cout << "Example" << endl;
 	cout << "./scheduler 3 1" << endl;

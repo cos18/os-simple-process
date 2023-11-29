@@ -2,10 +2,15 @@
 
 #include <stdlib.h>
 #include <exception>
+#include <time.h>
+#include <unistd.h>
+#include <sys/msg.h>
+#include <queue>
+#include <sys/time.h>
 #include <iostream>
 using namespace std;
 
-#include "ParentProcess.hpp"
 #include "ChildProcess.hpp"
+#include "ParentProcess.hpp"
 
-void print_info(void);
+void printInfo(void);
