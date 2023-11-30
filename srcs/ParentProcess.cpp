@@ -2,6 +2,10 @@
 
 ParentProcess::ParentProcess() {}
 
+ParentProcess::~ParentProcess(void) {
+	delete[] this->plist;
+}
+
 void ParentProcess::init(int argc, char **argv) {
 	if (argc != 3) throw ParentProcess::ParamException();
 
@@ -26,8 +30,18 @@ void ParentProcess::init(int argc, char **argv) {
 	}
 }
 
-ParentProcess::~ParentProcess(void) {
-	delete[] this->plist;
+void ParentProcess::run(void) {
+	struct itimerval it_val;
+
+	it_val.it_value.tv_sec = 1;
+	it_val.it_value.tv_usec = 0;   
+	it_val.it_interval = it_val.it_value;
+	it_val.it_interval.tv_sec = 1;
+	if (setitimer(ITIMER_REAL, &it_val, NULL) == -1) {
+		perror("error calling setitimer()");
+		exit(1);
+	}
+	while (1) {}
 }
 
 void ParentProcess::listener(void) {

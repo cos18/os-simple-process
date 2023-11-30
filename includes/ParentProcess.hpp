@@ -24,6 +24,7 @@ class ParentProcess {
 		~ParentProcess(void);
 
 		void init(int argc, char **argv);
+		void run(void);
 		void listener(void);
 
 		class ParamException: public std::exception {

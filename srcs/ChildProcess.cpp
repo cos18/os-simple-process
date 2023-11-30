@@ -6,8 +6,6 @@ ChildProcess::ChildProcess(void) {
 	this->cpu_dur = rand() % 10 + 6;
 	this->cpu_dur_left = this->cpu_dur;
 
-	printf("test\n");
-
 	this->pid = fork();
 
 	if (this->pid == 0) {
