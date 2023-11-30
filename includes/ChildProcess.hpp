@@ -27,12 +27,14 @@ class ChildProcess {
 		e_state	state;
 
 		ChildProcess();
+
 		const int&		getChildMsgId(void);
 		const e_state&	getState(void);
-		void			setParentMsgId(int &cpu_id, int &io_id);
+		void			setParentMsgId(int idx, int &cpu_id, int &io_id);
 		void			setState(e_state state);
 
-		void			run(void);
+		void			startProcess(void);
+		void			watch(void);
 
 		friend ostream&	operator<<(ostream &ost, ChildProcess &pos);
 };

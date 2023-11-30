@@ -1,11 +1,5 @@
 #include "scheduler.hpp"
 
-ParentProcess::ParentProcess() {}
-
-ParentProcess::~ParentProcess(void) {
-	delete[] this->plist;
-}
-
 void ParentProcess::init(int argc, char **argv) {
 	if (argc != 3) throw ParentProcess::ParamException();
 
@@ -15,23 +9,26 @@ void ParentProcess::init(int argc, char **argv) {
 		throw ParentProcess::ParamException();
 	this->gtimer = 0;
 
-	this->cpu_msg_id = msgget((key_t)rand(), IPC_CREAT|0666);
+	this->cpu_msg_id = msgget((key_t)(MSG_ID_PARENT_CPU), IPC_CREAT|0666);
 	this->curr_cpu_burst = NULL;
 
-	this->io_msg_id = msgget((key_t)rand(), IPC_CREAT|0666);
+	this->io_msg_id = msgget((key_t)(MSG_ID_PARENT_IO), IPC_CREAT|0666);
 	this->curr_io_burst = NULL;
 
 	this->plist = new ChildProcess[10];
 
 	for (int idx = 0; idx < 10; idx++) {
-		this->plist[idx].setParentMsgId(this->cpu_msg_id, this->io_msg_id);
+		this->plist[idx].setParentMsgId(idx, this->cpu_msg_id, this->io_msg_id);
 		this->ready_queue.push(this->plist + idx);
 		this->plist[idx].setState(STATE_READY);
+		this->plist[idx].startProcess();
 	}
 }
 
 void ParentProcess::run(void) {
 	struct itimerval it_val;
+
+	this->listener();
 
 	it_val.it_value.tv_sec = 1;
 	it_val.it_value.tv_usec = 0;   
@@ -46,7 +43,8 @@ void ParentProcess::run(void) {
 
 void ParentProcess::listener(void) {
 	// running ready queue
-	this->ready_queue.pop();
+	this->manageCPU();
+
 	// running io queue
 
 	// logging
@@ -55,9 +53,46 @@ void ParentProcess::listener(void) {
 	if (this->curr_cpu_burst == NULL && this->curr_io_burst == NULL
 		&& this->ready_queue.empty() && this->io_queue.empty()) {
 		printf("END!!\n");
+		this->clean();
 		exit(0);
 	}
 	this->gtimer++;
+}
+
+void ParentProcess::manageCPU(void) {
+	msgbuf msg;
+
+	ssize_t msg_size = msgrcv(this->cpu_msg_id, &msg, sizeof(msg), 10, IPC_NOWAIT);
+	cout << this->cpu_msg_id << "MSGSIZE " << strerror(errno) << endl;
+	if (msg_size > 0 || (this->curr_cpu_burst && (this->curr_cpu_quantum == this->time_quantum))) {
+		if (msg_size <= 0)
+			this->ready_queue.push(this->curr_cpu_burst);
+		this->curr_cpu_burst = NULL;
+		this->curr_cpu_quantum = 0;
+	}
+
+	if (!this->ready_queue.empty() && this->curr_cpu_burst == NULL) {
+		this->curr_cpu_burst = this->ready_queue.front();
+		this->ready_queue.pop();
+	}
+
+	if (this->curr_cpu_burst) {
+		msg.mtype = 1;
+		msg.send_pid = 0;
+		msg.type = TYPE_RUN_CPU_PROCESS;
+		msgsnd(this->curr_cpu_burst->getChildMsgId(), &msg, sizeof(msg), 0);
+		cout << endl << "RUNNING " << *(this->curr_cpu_burst) << endl;
+		this->curr_cpu_quantum++;
+	}
+}
+
+void ParentProcess::clean(void) {
+	msgctl(this->cpu_msg_id, IPC_RMID, 0);
+	msgctl(this->io_msg_id, IPC_RMID, 0);
+	for (int i = 0; i < 10; i++) {
+		msgctl(this->plist[i].getChildMsgId(), IPC_RMID, 0);
+	}
+	delete[] this->plist;
 }
 
 const char *ParentProcess::ParamException::what() const throw() {
