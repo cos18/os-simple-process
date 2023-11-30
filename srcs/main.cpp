@@ -2,13 +2,12 @@
 
 ParentProcess parent;
 
-#define INTERVAL 500
-
 void alarmListener(void) {
 	parent.listener();
 }
 
 int main(int argc, char **argv) {
+	struct itimerval it_val;
 	srand(time(NULL));
 	signal(SIGALRM, (void (*)(int))alarmListener);
 
@@ -20,18 +19,13 @@ int main(int argc, char **argv) {
 		exit(1);
 	}
 
-
-	struct itimerval it_val;  /* for setting itimer */
-
-	it_val.it_value.tv_sec =     INTERVAL/1000;
-	it_val.it_value.tv_usec =    (INTERVAL*1000) % 1000000;   
+	it_val.it_value.tv_sec = 1;
+	it_val.it_value.tv_usec = 0;   
 	it_val.it_interval = it_val.it_value;
+	it_val.it_interval.tv_sec = 1;
 	if (setitimer(ITIMER_REAL, &it_val, NULL) == -1) {
-	perror("error calling setitimer()");
-	exit(1);
+		perror("error calling setitimer()");
+		exit(1);
 	}
-	// parent.run();
-	while (1)  {
-
-	}
+	while (1) {}
 }

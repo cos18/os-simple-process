@@ -8,8 +8,11 @@ class ParentProcess {
 		int						time_log;
 		ChildProcess			*plist;
 
+		int						cpu_msg_id;
 		queue<ChildProcess*>	ready_queue;
 		ChildProcess			*curr_cpu_burst;
+
+		int						io_msg_id;
 		queue<ChildProcess*>	io_queue;
 		ChildProcess			*curr_io_burst;
 
@@ -21,7 +24,6 @@ class ParentProcess {
 		~ParentProcess(void);
 
 		void init(int argc, char **argv);
-		void run(void);
 		void listener(void);
 
 		class ParamException: public std::exception {
