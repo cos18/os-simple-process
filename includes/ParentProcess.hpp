@@ -18,13 +18,15 @@ class ParentProcess {
 		ChildProcess			*curr_io_burst;
 
 		int						gtimer;
+		int						pid;
 	
 	public:
+		~ParentProcess(void);
+
 		void init(int argc, char **argv);
 		void run(void);
 		void listener(void);
 		void manageCPU(void);
-		void clean(void);
 
 		class ParamException: public std::exception {
 			public:

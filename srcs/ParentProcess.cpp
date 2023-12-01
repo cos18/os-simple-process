@@ -1,5 +1,16 @@
 #include "scheduler.hpp"
 
+ParentProcess::~ParentProcess(void) {
+	if (getpid() == this->pid) {
+		msgctl(this->cpu_msg_id, IPC_RMID, 0);
+		msgctl(this->io_msg_id, IPC_RMID, 0);
+		for (int i = 0; i < 10; i++) {
+			msgctl(this->plist[i].getChildMsgId(), IPC_RMID, 0);
+		}
+		delete[] this->plist;
+	}
+}
+
 void ParentProcess::init(int argc, char **argv) {
 	if (argc != 3) throw ParentProcess::ParamException();
 
@@ -7,17 +18,14 @@ void ParentProcess::init(int argc, char **argv) {
 	this->time_log = atoi(argv[2]);
 	if (this->time_quantum <= 0 || this->time_log <= 0)
 		throw ParentProcess::ParamException();
-	this->gtimer = 0;
 
-	do {
-		this->cpu_msg_id = msgget((key_t)(rand()), IPC_CREAT|0666);
-	} while (this->cpu_msg_id == -1);
+	this->gtimer = 0;
+	this->pid = getpid();
+
+	this->cpu_msg_id = msgget((key_t)(MSG_ID_PARENT_CPU), IPC_CREAT|0666);
 	this->curr_cpu_burst = NULL;
 
 	this->io_msg_id = msgget((key_t)(MSG_ID_PARENT_IO), IPC_CREAT|0666);
-	do {
-		this->io_msg_id = msgget((key_t)(rand()), IPC_CREAT|0666);
-	} while (this->io_msg_id == -1);
 	this->curr_io_burst = NULL;
 
 	this->plist = new ChildProcess[10];
@@ -58,7 +66,6 @@ void ParentProcess::listener(void) {
 	if (this->curr_cpu_burst == NULL && this->curr_io_burst == NULL
 		&& this->ready_queue.empty() && this->io_queue.empty()) {
 		printf("END!!\n");
-		this->clean();
 		exit(0);
 	}
 	this->gtimer++;
@@ -94,15 +101,6 @@ void ParentProcess::manageCPU(void) {
 		cout << "RUNNING " << *(this->curr_cpu_burst) << endl;
 		this->curr_cpu_quantum++;
 	}
-}
-
-void ParentProcess::clean(void) {
-	msgctl(this->cpu_msg_id, IPC_RMID, 0);
-	msgctl(this->io_msg_id, IPC_RMID, 0);
-	for (int i = 0; i < 10; i++) {
-		msgctl(this->plist[i].getChildMsgId(), IPC_RMID, 0);
-	}
-	delete[] this->plist;
 }
 
 const char *ParentProcess::ParamException::what() const throw() {
