@@ -9,10 +9,15 @@ void ParentProcess::init(int argc, char **argv) {
 		throw ParentProcess::ParamException();
 	this->gtimer = 0;
 
-	this->cpu_msg_id = msgget((key_t)(MSG_ID_PARENT_CPU), IPC_CREAT|0666);
+	do {
+		this->cpu_msg_id = msgget((key_t)(rand()), IPC_CREAT|0666);
+	} while (this->cpu_msg_id == -1);
 	this->curr_cpu_burst = NULL;
 
 	this->io_msg_id = msgget((key_t)(MSG_ID_PARENT_IO), IPC_CREAT|0666);
+	do {
+		this->io_msg_id = msgget((key_t)(rand()), IPC_CREAT|0666);
+	} while (this->io_msg_id == -1);
 	this->curr_io_burst = NULL;
 
 	this->plist = new ChildProcess[10];
@@ -60,13 +65,18 @@ void ParentProcess::listener(void) {
 }
 
 void ParentProcess::manageCPU(void) {
-	msgbuf msg;
+	msg_load msg;
 
-	ssize_t msg_size = msgrcv(this->cpu_msg_id, &msg, sizeof(msg), 10, IPC_NOWAIT);
-	cout << this->cpu_msg_id << "MSGSIZE " << strerror(errno) << endl;
+	ssize_t msg_size = msgrcv(this->cpu_msg_id, &msg, sizeof(msg) - sizeof(msg.mtype), 1, IPC_NOWAIT);
 	if (msg_size > 0 || (this->curr_cpu_burst && (this->curr_cpu_quantum == this->time_quantum))) {
 		if (msg_size <= 0)
 			this->ready_queue.push(this->curr_cpu_burst);
+		else {
+			msg.mtype = 1;
+			msg.send_pid = 0;
+			msg.type = TYPE_CLEAR_PROCESS;
+			msgsnd(this->curr_cpu_burst->getChildMsgId(), &msg, sizeof(msg) - sizeof(msg.mtype), 0);
+		}
 		this->curr_cpu_burst = NULL;
 		this->curr_cpu_quantum = 0;
 	}
@@ -80,8 +90,8 @@ void ParentProcess::manageCPU(void) {
 		msg.mtype = 1;
 		msg.send_pid = 0;
 		msg.type = TYPE_RUN_CPU_PROCESS;
-		msgsnd(this->curr_cpu_burst->getChildMsgId(), &msg, sizeof(msg), 0);
-		cout << endl << "RUNNING " << *(this->curr_cpu_burst) << endl;
+		msgsnd(this->curr_cpu_burst->getChildMsgId(), &msg, sizeof(msg) - sizeof(msg.mtype), 0);
+		cout << "RUNNING " << *(this->curr_cpu_burst) << endl;
 		this->curr_cpu_quantum++;
 	}
 }

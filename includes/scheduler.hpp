@@ -7,6 +7,7 @@
 #include <sys/msg.h>
 #include <queue>
 #include <sys/time.h>
+#include <csignal>
 #include <iostream>
 using namespace std;
 
@@ -15,7 +16,8 @@ using namespace std;
 
 enum msg_type {
 	TYPE_RUN_CPU_PROCESS,
-	TYPE_CHILD_END
+	TYPE_CHILD_END,
+	TYPE_CLEAR_PROCESS,
 };
 
 enum msg_id {
@@ -28,6 +30,6 @@ typedef struct {
 	long		mtype;
 	int			send_pid;
 	msg_type	type;
-} msgbuf;
+} msg_load;
 
 void printInfo(void);

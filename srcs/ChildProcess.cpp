@@ -37,10 +37,10 @@ void ChildProcess::startProcess(void) {
 }
 
 void ChildProcess::watch(void) {
-	msgbuf msg;
+	msg_load msg;
 	msg.mtype = 1;
 	while (1) {
-		if (msgrcv(this->child_recv_id, &msg, sizeof(msg), 1, 0) != -1) {
+		if (msgrcv(this->child_recv_id, &msg, sizeof(msg) - sizeof(msg.mtype), 1, 0) != -1) {
 			switch (msg.type) {
 				case TYPE_RUN_CPU_PROCESS:
 					if (this->cpu_dur == this->cpu_dur_left) {
@@ -51,9 +51,11 @@ void ChildProcess::watch(void) {
 						msg.mtype = 1;
 						msg.send_pid = getpid();
 						msg.type = TYPE_CHILD_END;
-						msgsnd(this->parent_cpu_send_id, &msg, sizeof(msg), 0);
-						exit(0);
+						msgsnd(this->parent_cpu_send_id, &msg, sizeof(msg) - sizeof(msg.mtype), 0);
 					}
+					break;
+				case TYPE_CLEAR_PROCESS:
+					exit(0);
 				default:
 					break;
 			}

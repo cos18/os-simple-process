@@ -9,8 +9,8 @@ OBJS		= $(SRCS:.cpp=.o)
 BUILDDIR	= ./build/
 BUILDOBJS	= $(addprefix $(BUILDDIR), $(SRCNAMES:.cpp=.o))
 
-CC			= clang++
-CCFLAG		= -g -fsanitize=address -Wall -Wextra -Werror
+CC			= g++
+CCFLAG		= -g -Wall -Wextra -Werror
 RM			= rm -f
 
 all:			$(BUILDDIR) $(NAME)
