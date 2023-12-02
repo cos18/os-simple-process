@@ -20,6 +20,9 @@ class ParentProcess {
 
 		int						gtimer;
 		int						pid;
+
+		int						log_msg_id;
+		ofstream				log_file_stream;
 	
 	public:
 		~ParentProcess(void);
@@ -30,6 +33,7 @@ class ParentProcess {
 		void cleanup(void);
 		void manageCPU(void);
 		void manageIO(void);
+		void writeLog(void);
 
 		class ParamException: public std::exception {
 			public:
