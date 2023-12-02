@@ -16,8 +16,11 @@ using namespace std;
 
 enum msg_type {
 	TYPE_RUN_CPU_PROCESS,
+	TYPE_RUN_IO_PROCESS,
+	TYPE_CHILD_IO_INTERRUPT,
+	TYPE_CHILD_IO_END,
 	TYPE_CHILD_END,
-	TYPE_CLEAR_PROCESS,
+	TYPE_CLEAR_PROCESS
 };
 
 enum msg_id {

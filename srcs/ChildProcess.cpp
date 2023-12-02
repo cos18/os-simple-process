@@ -2,13 +2,14 @@
 
 ChildProcess::ChildProcess(void) {
 	this->state = STATE_NEW;
-	this->cpu_dur = 2;
+	this->cpu_dur = rand() % 5 + 6;
+	// this->cpu_dur = 2;
 	this->cpu_dur_left = this->cpu_dur;
 
 	this->is_io = false;
-	this->io_start_time = 1;
-	this->io_dur = 1;
-	this->io_dur_left = 1;
+	this->io_start_time = -1;
+	this->io_dur = -1;
+	this->io_dur_left = -1;
 }
 
 const int& ChildProcess::getChildMsgId(void) {
@@ -44,14 +45,35 @@ void ChildProcess::watch(void) {
 			switch (msg.type) {
 				case TYPE_RUN_CPU_PROCESS:
 					if (this->cpu_dur == this->cpu_dur_left) {
-						// setting io
+						srand(time(NULL));
+						if (rand() % 10 < 5) {
+							this->is_io = true;
+							this->io_start_time = rand() % (this->cpu_dur - 1) + 1;
+							this->io_dur = rand() % 3 + 1;
+							this->io_dur_left = this->io_dur;
+						}
 					}
 					this->cpu_dur_left--;
+					if (this->is_io && (this->cpu_dur - this->cpu_dur_left) == this->io_start_time) {
+						msg.mtype = 1;
+						msg.send_pid = getpid();
+						msg.type = TYPE_CHILD_IO_INTERRUPT;
+						msgsnd(this->parent_cpu_send_id, &msg, sizeof(msg) - sizeof(msg.mtype), 0);
+					}
 					if (this->cpu_dur_left == 0) {
 						msg.mtype = 1;
 						msg.send_pid = getpid();
 						msg.type = TYPE_CHILD_END;
 						msgsnd(this->parent_cpu_send_id, &msg, sizeof(msg) - sizeof(msg.mtype), 0);
+					}
+					break;
+				case TYPE_RUN_IO_PROCESS:
+					this->io_dur_left--;
+					if (this->io_dur_left == 0) {
+						msg.mtype = 1;
+						msg.send_pid = getpid();
+						msg.type = TYPE_CHILD_IO_END;
+						msgsnd(this->parent_io_send_id, &msg, sizeof(msg) - sizeof(msg.mtype), 0);
 					}
 					break;
 				case TYPE_CLEAR_PROCESS:
@@ -64,6 +86,6 @@ void ChildProcess::watch(void) {
 }
 
 ostream &operator<<(ostream &ost, ChildProcess &pos) {
-	ost << "[ChildProcess] pid " << pos.pid << " / cpu_dur " << pos.cpu_dur << " / child_recv_id " << pos.child_recv_id;
+	ost << "[ChildProcess] pid " << pos.pid << " / cpu_dur " << pos.cpu_dur;
 	return ost;
 }
