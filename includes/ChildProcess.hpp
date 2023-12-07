@@ -47,6 +47,9 @@ class ChildProcess {
 
 		void			startProcess(void);
 		void			watch(void);
+		void			runCPUBurst(void);
+		void			runIOBurst(void);
+		void			sendParentInfo(void);
 		void			update(int log_msg_id);
 
 		friend ostream&	operator<<(ostream &ost, ChildProcess &pos);

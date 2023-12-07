@@ -2,7 +2,7 @@
 
 ChildProcess::ChildProcess(void) {
 	this->state = STATE_NEW;
-	this->cpu_dur = rand() % 10 + 6;
+	this->cpu_dur = rand() % (CPU_MAX_DUR - CPU_MIN_DUR + 1) + CPU_MIN_DUR;
 	this->cpu_dur_left = this->cpu_dur;
 
 	this->is_io = false;
@@ -40,43 +40,15 @@ void ChildProcess::startProcess(void) {
 
 void ChildProcess::watch(void) {
 	msg_load		msg;
-	msg_child_info	msg_child;
+
 	while (1) {
 		if (msgrcv(this->child_recv_id, &msg, sizeof(msg) - sizeof(msg.mtype), 1, 0) != -1) {
 			switch (msg.type) {
 				case TYPE_RUN_CPU_PROCESS:
-					this->state = STATE_RUNNING;
-					if (this->cpu_dur == this->cpu_dur_left) {
-						srand(time(NULL));
-						if (rand() % 10 < 5) {
-							this->is_io = true;
-							this->io_start_time = rand() % (this->cpu_dur - 1) + 1;
-							this->io_dur = rand() % 3 + 1;
-							this->io_dur_left = this->io_dur;
-						}
-					}
-					this->cpu_dur_left--;
-					if (this->is_io && ((this->cpu_dur - this->cpu_dur_left) == this->io_start_time)) {
-						msg.mtype = 1;
-						msg.send_pid = getpid();
-						msg.type = TYPE_CHILD_IO_INTERRUPT;
-						msgsnd(this->parent_cpu_send_id, &msg, sizeof(msg) - sizeof(msg.mtype), 0);
-					}
-					if (this->cpu_dur_left == 0) {
-						msg.mtype = 1;
-						msg.send_pid = getpid();
-						msg.type = TYPE_CHILD_END;
-						msgsnd(this->parent_cpu_send_id, &msg, sizeof(msg) - sizeof(msg.mtype), 0);
-					}
+					this->runCPUBurst();
 					break;
 				case TYPE_RUN_IO_PROCESS:
-					this->io_dur_left--;
-					if (this->io_dur_left == 0) {
-						msg.mtype = 1;
-						msg.send_pid = getpid();
-						msg.type = TYPE_CHILD_IO_END;
-						msgsnd(this->parent_io_send_id, &msg, sizeof(msg) - sizeof(msg.mtype), 0);
-					}
+					this->runIOBurst();
 					break;
 				case TYPE_CHILD_READY:
 					this->state = STATE_READY;
@@ -88,15 +60,7 @@ void ChildProcess::watch(void) {
 					this->state = STATE_TERMINATED;
 					break;
 				case TYPE_CHILD_INFO:
-					msg_child.mtype = 1;
-					msg_child.send_pid = this->pid;
-					msg_child.cpu_dur_left = this->cpu_dur_left;
-					msg_child.is_io = this->is_io;
-					msg_child.io_start_time = this->io_start_time;
-					msg_child.io_dur = this->io_dur;
-					msg_child.io_dur_left = this->io_dur_left;
-					msg_child.state = this->state;
-					msgsnd(this->parent_log_send_id, &msg_child, sizeof(msg_child) - sizeof(msg_child.mtype), 0);
+					this->sendParentInfo();
 					break;
 				case TYPE_KILL_PROCESS:
 					msgctl(this->child_recv_id, IPC_RMID, 0);
@@ -106,6 +70,46 @@ void ChildProcess::watch(void) {
 					break;
 			}
 		}
+	}
+}
+
+void ChildProcess::runCPUBurst(void) {
+	msg_load	msg;
+
+	this->state = STATE_RUNNING;
+	if (this->cpu_dur == this->cpu_dur_left) {
+		srand(time(NULL));
+		if (rand() % 100 < IO_PROBABILITY_PERCENTILE) {
+			this->is_io = true;
+			this->io_start_time = rand() % (this->cpu_dur - 1) + 1;
+			this->io_dur = rand() % IO_MAX_DUR + 1;
+			this->io_dur_left = this->io_dur;
+		}
+	}
+	this->cpu_dur_left--;
+	if (this->is_io && ((this->cpu_dur - this->cpu_dur_left) == this->io_start_time)) {
+		msg.mtype = 1;
+		msg.send_pid = getpid();
+		msg.type = TYPE_CHILD_IO_INTERRUPT;
+		msgsnd(this->parent_cpu_send_id, &msg, sizeof(msg) - sizeof(msg.mtype), 0);
+	}
+	if (this->cpu_dur_left == 0) {
+		msg.mtype = 1;
+		msg.send_pid = getpid();
+		msg.type = TYPE_CHILD_END;
+		msgsnd(this->parent_cpu_send_id, &msg, sizeof(msg) - sizeof(msg.mtype), 0);
+	}
+}
+
+void ChildProcess::runIOBurst(void) {
+	msg_load	msg;
+
+	this->io_dur_left--;
+	if (this->io_dur_left == 0) {
+		msg.mtype = 1;
+		msg.send_pid = getpid();
+		msg.type = TYPE_CHILD_IO_END;
+		msgsnd(this->parent_io_send_id, &msg, sizeof(msg) - sizeof(msg.mtype), 0);
 	}
 }
 
@@ -128,6 +132,20 @@ void ChildProcess::update(int log_msg_id) {
 	this->io_dur = msg_child.io_dur;
 	this->io_dur_left = msg_child.io_dur_left;
 	this->state = msg_child.state;
+}
+
+void ChildProcess::sendParentInfo(void) {
+	msg_child_info	msg_child;
+
+	msg_child.mtype = 1;
+	msg_child.send_pid = this->pid;
+	msg_child.cpu_dur_left = this->cpu_dur_left;
+	msg_child.is_io = this->is_io;
+	msg_child.io_start_time = this->io_start_time;
+	msg_child.io_dur = this->io_dur;
+	msg_child.io_dur_left = this->io_dur_left;
+	msg_child.state = this->state;
+	msgsnd(this->parent_log_send_id, &msg_child, sizeof(msg_child) - sizeof(msg_child.mtype), 0);
 }
 
 ostream &operator<<(ostream &ost, ChildProcess &pos) {

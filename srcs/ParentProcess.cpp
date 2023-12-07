@@ -29,7 +29,7 @@ void ParentProcess::init(int argc, char **argv) {
 	this->time_unit = 1000;
 	if (argc == 4)
 		this->time_unit = atoi(argv[3]);
-	if (this->time_unit < 100)
+	if (this->time_unit < 10)
 		throw ParentProcess::ParamException();
 
 	this->gtimer = 0;

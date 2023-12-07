@@ -18,6 +18,10 @@ using namespace std;
 #include "ParentProcess.hpp"
 
 #define PROCESS_NUM 10
+#define CPU_MIN_DUR 6
+#define CPU_MAX_DUR 20
+#define IO_PROBABILITY_PERCENTILE 50
+#define IO_MAX_DUR 5
 
 enum msg_type {
 	TYPE_RUN_CPU_PROCESS,
