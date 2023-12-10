@@ -159,7 +159,6 @@ ostream &operator<<(ostream &ost, ChildProcess &pos) {
 			break;
 		case STATE_RUNNING:
 			ost << "RUNNING";
-			pos.cpu_dur_left++;
 			break;
 		case STATE_WAITING:
 			ost << "WAITING";
@@ -168,7 +167,8 @@ ostream &operator<<(ostream &ost, ChildProcess &pos) {
 			ost << "TERMINATED";
 			break;
 	}
-	ost << " / cpu_dur " << pos.cpu_dur << " / cpu_dur_left " << pos.cpu_dur_left;
+	ost << " / cpu_dur " << pos.cpu_dur << " / cpu_dur_left ";
+	ost << ((pos.state == STATE_RUNNING) ? pos.cpu_dur_left + 1 : pos.cpu_dur_left);
 	if (pos.is_io)
 		ost << " / io_dur " << pos.io_dur << " / io_dur_left " << pos.io_dur_left;
 	return ost;
