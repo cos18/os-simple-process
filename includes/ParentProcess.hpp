@@ -4,21 +4,21 @@
 
 class ParentProcess {
 	private:
-		int						time_quantum;
-		int						time_log;
-		int						time_unit;
+		unsigned short			time_quantum;
+		unsigned short			time_log;
+		unsigned short			time_unit;
 		ChildProcess			*plist;
 
 		int						cpu_msg_id;
 		queue<ChildProcess*>	ready_queue;
 		ChildProcess			*curr_cpu_burst;
-		int						curr_cpu_quantum;
+		unsigned short			curr_cpu_quantum;
 
 		int						io_msg_id;
 		queue<ChildProcess*>	io_queue;
 		ChildProcess			*curr_io_burst;
 
-		int						gtimer;
+		unsigned short			gtimer;
 		int						pid;
 
 		int						log_msg_id;

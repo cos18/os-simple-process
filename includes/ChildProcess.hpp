@@ -11,11 +11,11 @@ enum e_state {
 typedef struct {
 	long				mtype;
 	int					send_pid;
-	int					cpu_dur_left;
+	unsigned short		cpu_dur_left;
 	bool				is_io;
-	int					io_start_time;
-	int					io_dur;
-	int					io_dur_left;
+	unsigned short		io_start_time;
+	unsigned short		io_dur;
+	unsigned short		io_dur_left;
 	e_state				state;
 } msg_child_info;
 
@@ -27,13 +27,13 @@ class ChildProcess {
 		int				parent_log_send_id;
 		int				child_recv_id;
 
-		int				cpu_dur; // determined at the time of child process creation
-		int				cpu_dur_left;
+		unsigned short	cpu_dur;
+		unsigned short	cpu_dur_left;
 
-		bool			is_io; // When child process enters running state
-		int				io_start_time;
-		int				io_dur;
-		int				io_dur_left;
+		bool			is_io;
+		unsigned short	io_start_time;
+		unsigned short	io_dur;
+		unsigned short	io_dur_left;
 
 	public:
 		e_state	state;
