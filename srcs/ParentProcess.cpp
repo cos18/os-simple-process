@@ -20,17 +20,13 @@ ParentProcess::~ParentProcess(void) {
 }
 
 void ParentProcess::init(int argc, char **argv) {
-	if (argc < 3 || argc > 4) throw ParentProcess::ParamException();
+	if (argc != 3) throw ParentProcess::ParamException();
 
 	this->time_quantum = atoi(argv[1]);
 	this->time_log = atoi(argv[2]);
 	if (this->time_quantum <= 0 || this->time_log <= 0)
 		throw ParentProcess::ParamException();
-	this->time_unit = 1000;
-	if (argc == 4)
-		this->time_unit = atoi(argv[3]);
-	if (this->time_unit < 10)
-		throw ParentProcess::ParamException();
+	this->time_unit = 100; // TODO: fix time unit
 
 	this->gtimer = 0;
 	this->pid = getpid();
@@ -43,7 +39,7 @@ void ParentProcess::init(int argc, char **argv) {
 
 	this->plist = new ChildProcess[10];
 
-	this->log_file_stream.open("schedule_dump.txt", ios_base::trunc);
+	this->log_file_stream.open("paging_dump.txt", ios_base::trunc);
 	this->log_msg_id = msgget((key_t)(MSG_ID_LOG), IPC_CREAT|0666);
 
 	for (int idx = 0; idx < PROCESS_NUM; idx++) {

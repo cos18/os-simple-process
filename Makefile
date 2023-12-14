@@ -1,4 +1,4 @@
-NAME		= scheduler
+NAME		= paging
 
 SRCDIR		= ./srcs/
 INCDIR		= ./includes/
