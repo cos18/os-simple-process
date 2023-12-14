@@ -57,6 +57,9 @@
 		"variant": "cpp",
 		"algorithm": "cpp",
 		"fstream": "cpp",
-		"thread": "cpp"
+		"thread": "cpp",
+		"iomanip": "cpp",
+		"__tree": "cpp",
+		"set": "cpp"
 	}
 }

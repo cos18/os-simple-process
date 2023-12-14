@@ -14,16 +14,14 @@ class ParentProcess {
 		ChildProcess			*curr_cpu_burst;
 		unsigned short			curr_cpu_quantum;
 
-		int						io_msg_id;
-		queue<ChildProcess*>	io_queue;
-		ChildProcess			*curr_io_burst;
-
-		unsigned short			gtimer;
-		int						pid;
+		//int					mem_msg_id;
+		PhysicalMemory			pm;
 
 		int						log_msg_id;
 		ofstream				log_file_stream;
-		PhysicalMemory			pm;
+
+		unsigned short			gtimer;
+		int						pid;
 	
 	public:
 		~ParentProcess(void);
@@ -33,7 +31,6 @@ class ParentProcess {
 		void listener(void);
 		void cleanup(void);
 		void manageCPU(void);
-		void manageIO(void);
 		void writeLog(void);
 
 		class ParamException: public std::exception {

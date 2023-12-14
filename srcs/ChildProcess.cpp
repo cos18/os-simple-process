@@ -2,13 +2,12 @@
 
 ChildProcess::ChildProcess(void) {
 	this->state = STATE_NEW;
-	this->cpu_dur = rand() % (CPU_MAX_DUR - CPU_MIN_DUR + 1) + CPU_MIN_DUR;
-	this->cpu_dur_left = this->cpu_dur;
+	this->operation_cnt = 0;
+	this->is_request_pending = false;
+}
 
-	this->is_io = false;
-	this->io_start_time = -1;
-	this->io_dur = -1;
-	this->io_dur_left = -1;
+const int& ChildProcess::getPID(void) {
+	return this->pid;
 }
 
 const int& ChildProcess::getChildMsgId(void) {
@@ -19,10 +18,9 @@ const e_state& ChildProcess::getState(void) {
 	return this->state;
 }
 
-void ChildProcess::setParentMsgId(int idx, int cpu_id, int io_id, int log_id) {
+void ChildProcess::setParentMsgId(int idx, int cpu_id, int log_id) {
 	this->child_recv_id = msgget((key_t)(MSG_ID_CHILDS + idx), IPC_CREAT|0666);
 	this->parent_cpu_send_id = cpu_id;
-	this->parent_io_send_id = io_id;
 	this->parent_log_send_id = log_id;
 }
 
@@ -30,16 +28,23 @@ void ChildProcess::setState(e_state state) {
 	this->state = state;
 }
 
-void ChildProcess::setPageTable(unsigned short start_idx) {
-	this->pt = PageTable(start_idx);
+void ChildProcess::setLogicalMemoryStartIdx(unsigned short start_idx) {
+	this->logical_memory_start_idx = start_idx;
 }
 
 void ChildProcess::startProcess(void) {
 	this->pid = fork();
 
-	if (this->pid == 0)
+	if (this->pid == 0) {
+		this->gen = mt19937(this->rd());
+		this->nd_page = normal_distribution<>(
+			this->logical_memory_start_idx + PAGE_TABLE_SIZE / 2.0,
+			PAGE_TABLE_SIZE / 8.0
+		);
 		this->watch();
-		
+	} else {
+		this->pt = PageTable(this->logical_memory_start_idx);
+	}
 }
 
 void ChildProcess::watch(void) {
@@ -50,9 +55,6 @@ void ChildProcess::watch(void) {
 			switch (msg.type) {
 				case TYPE_RUN_CPU_PROCESS:
 					this->runCPUBurst();
-					break;
-				case TYPE_RUN_IO_PROCESS:
-					this->runIOBurst();
 					break;
 				case TYPE_CHILD_READY:
 					this->state = STATE_READY;
@@ -78,42 +80,34 @@ void ChildProcess::watch(void) {
 }
 
 void ChildProcess::runCPUBurst(void) {
-	msg_load	msg;
+	set<unsigned short>	page_idx_set;
 
 	this->state = STATE_RUNNING;
-	if (this->cpu_dur == this->cpu_dur_left) {
+
+	
+
+	if (!(this->is_request_pending)) {
+		while (page_idx_set.size() < 10) {
+			double number = round(this->nd_page(this->gen));
+			if (number < this->logical_memory_start_idx || number >= this->logical_memory_start_idx + PAGE_TABLE_SIZE)
+				continue;
+			page_idx_set.insert(number);
+		}
 		srand(time(NULL));
-		if (rand() % 100 < IO_PROBABILITY_PERCENTILE) {
-			this->is_io = true;
-			this->io_start_time = rand() % (this->cpu_dur - 1) + 1;
-			this->io_dur = rand() % IO_MAX_DUR + 1;
-			this->io_dur_left = this->io_dur;
+		auto it = page_idx_set.begin();
+		for (int idx = 0; idx < 10; idx++) {
+			this->curr_request_va[idx].page_number = *it;
+			this->curr_request_va[idx].page_offset = rand() % PAGE_SIZE;
+			it++;
 		}
 	}
-	this->cpu_dur_left--;
-	if (this->is_io && ((this->cpu_dur - this->cpu_dur_left) == this->io_start_time)) {
-		msg.mtype = 1;
-		msg.send_pid = getpid();
-		msg.type = TYPE_CHILD_IO_INTERRUPT;
-		msgsnd(this->parent_cpu_send_id, &msg, sizeof(msg) - sizeof(msg.mtype), 0);
-	}
-	if (this->cpu_dur_left == 0) {
-		msg.mtype = 1;
-		msg.send_pid = getpid();
-		msg.type = TYPE_CHILD_END;
-		msgsnd(this->parent_cpu_send_id, &msg, sizeof(msg) - sizeof(msg.mtype), 0);
-	}
-}
-
-void ChildProcess::runIOBurst(void) {
-	msg_load	msg;
-
-	this->io_dur_left--;
-	if (this->io_dur_left == 0) {
-		msg.mtype = 1;
-		msg.send_pid = getpid();
-		msg.type = TYPE_CHILD_IO_END;
-		msgsnd(this->parent_io_send_id, &msg, sizeof(msg) - sizeof(msg.mtype), 0);
+	
+	if (this->pt.checkPageFaultHappen(this->curr_request_va)) {
+		this->state = STATE_WAITING;
+		this->is_request_pending = true;
+	} else {
+		this->operation_cnt++;
+		this->is_request_pending = false;
 	}
 }
 
@@ -130,11 +124,7 @@ void ChildProcess::update(int log_msg_id) {
 	do {
 		size = msgrcv(log_msg_id, &msg_child, sizeof(msg_child) - sizeof(msg_child.mtype), 1, 0);
 	} while (size < 0);
-	this->cpu_dur_left = msg_child.cpu_dur_left;
-	this->is_io = msg_child.is_io;
-	this->io_start_time = msg_child.io_start_time;
-	this->io_dur = msg_child.io_dur;
-	this->io_dur_left = msg_child.io_dur_left;
+	this->operation_cnt = msg_child.operation_cnt;
 	this->state = msg_child.state;
 }
 
@@ -143,11 +133,7 @@ void ChildProcess::sendParentInfo(void) {
 
 	msg_child.mtype = 1;
 	msg_child.send_pid = this->pid;
-	msg_child.cpu_dur_left = this->cpu_dur_left;
-	msg_child.is_io = this->is_io;
-	msg_child.io_start_time = this->io_start_time;
-	msg_child.io_dur = this->io_dur;
-	msg_child.io_dur_left = this->io_dur_left;
+	msg_child.operation_cnt = this->operation_cnt;
 	msg_child.state = this->state;
 	msgsnd(this->parent_log_send_id, &msg_child, sizeof(msg_child) - sizeof(msg_child.mtype), 0);
 }
@@ -171,9 +157,7 @@ ostream &operator<<(ostream &ost, ChildProcess &pos) {
 			ost << "TERMINATED";
 			break;
 	}
-	ost << " / cpu_dur " << pos.cpu_dur << " / cpu_dur_left ";
-	ost << ((pos.state == STATE_RUNNING) ? pos.cpu_dur_left + 1 : pos.cpu_dur_left);
-	if (pos.is_io)
-		ost << " / io_dur " << pos.io_dur << " / io_dur_left " << pos.io_dur_left;
+	ost << " / Logical Memory Start idx " << pos.logical_memory_start_idx;
+	ost << " / operation_cnt " << pos.operation_cnt;
 	return ost;
 }

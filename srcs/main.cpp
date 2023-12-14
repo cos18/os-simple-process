@@ -7,6 +7,12 @@ void alarmListener(void) {
 }
 
 int main(int argc, char **argv) {
+	checkBackingStore();
+	if (argc == 2 && !strcmp(argv[1], "reset")) {
+		resetBackingStore();
+		exit(0);
+	}
+
 	srand(time(NULL));
 	signal(SIGALRM, (void (*)(int))alarmListener);
 

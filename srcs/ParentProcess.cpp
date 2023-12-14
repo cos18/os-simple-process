@@ -10,9 +10,10 @@ ParentProcess::~ParentProcess(void) {
 			msg.type = TYPE_KILL_PROCESS;
 			msgsnd(this->plist[i].getChildMsgId(), &msg, sizeof(msg) - sizeof(msg.mtype), 0);
 		}
-		this_thread::sleep_for(chrono::milliseconds(100));
+		for (int i = 0; i < PROCESS_NUM; i++) {
+			waitpid(this->plist[i].getPID(), NULL, 0);
+		}
 		msgctl(this->cpu_msg_id, IPC_RMID, 0);
-		msgctl(this->io_msg_id, IPC_RMID, 0);
 		msgctl(this->log_msg_id, IPC_RMID, 0);
 		delete[] this->plist;
 		this->log_file_stream.close();
@@ -34,9 +35,6 @@ void ParentProcess::init(int argc, char **argv) {
 	this->cpu_msg_id = msgget((key_t)(MSG_ID_CPU), IPC_CREAT|0666);
 	this->curr_cpu_burst = NULL;
 
-	this->io_msg_id = msgget((key_t)(MSG_ID_IO), IPC_CREAT|0666);
-	this->curr_io_burst = NULL;
-
 	this->plist = new ChildProcess[10];
 
 	this->log_file_stream.open("paging_dump.txt", ios_base::trunc);
@@ -44,18 +42,18 @@ void ParentProcess::init(int argc, char **argv) {
 
 	int nd_max = BACKING_STORE_PAGE_SIZE - PAGE_TABLE_SIZE, start_idx;
 	random_device rd;
-    mt19937 gen(rd());
+	mt19937 gen(rd());
 	normal_distribution<double> d(nd_max / 2.0, nd_max / 8.0);
 
 	for (int idx = 0; idx < PROCESS_NUM; idx++) {
-		this->plist[idx].setParentMsgId(idx, this->cpu_msg_id, this->io_msg_id, this->log_msg_id);
+		this->plist[idx].setParentMsgId(idx, this->cpu_msg_id, this->log_msg_id);
 		this->ready_queue.push(this->plist + idx);
 		this->plist[idx].setState(STATE_READY);
-		this->plist[idx].startProcess();
 		do {
 			start_idx = std::round(d(gen));
 		} while (start_idx < 0 || start_idx >= nd_max);
-		this->plist[idx].setPageTable(start_idx);
+		this->plist[idx].setLogicalMemoryStartIdx(start_idx);
+		this->plist[idx].startProcess();
 	}
 }
 
@@ -79,10 +77,9 @@ void ParentProcess::listener(void) {
 
 	this->cleanup();
 	this->manageCPU();
-	this->manageIO();
 
-	if (this->curr_cpu_burst == NULL && this->curr_io_burst == NULL
-		&& this->ready_queue.empty() && this->io_queue.empty()) {
+	// TODO: Need to change fixed time ticks
+	if (this->gtimer == SIMULATE_TIME_TICK) {
 		cout << "END!!\n";
 		exit(0);
 	}
@@ -106,13 +103,6 @@ void ParentProcess::cleanup(void) {
 				msg.type = TYPE_TERMINATE_CHILD;
 				msgsnd(this->curr_cpu_burst->getChildMsgId(), &msg, sizeof(msg) - sizeof(msg.mtype), 0);
 				break;
-			case TYPE_CHILD_IO_INTERRUPT:
-				this->io_queue.push(this->curr_cpu_burst);
-				msg.mtype = 1;
-				msg.send_pid = 0;
-				msg.type = TYPE_CHILD_WAITING;
-				msgsnd(this->curr_cpu_burst->getChildMsgId(), &msg, sizeof(msg) - sizeof(msg.mtype), 0);
-				break;
 			default:
 				this->ready_queue.push(this->curr_cpu_burst);
 				msg.mtype = 1;
@@ -122,15 +112,6 @@ void ParentProcess::cleanup(void) {
 		}
 		this->curr_cpu_burst = NULL;
 		this->curr_cpu_quantum = 0;
-	}
-
-	if (msgrcv(this->io_msg_id, &msg, sizeof(msg) - sizeof(msg.mtype), 1, IPC_NOWAIT) > 0) {
-		this->ready_queue.push(this->curr_io_burst);
-		msg.mtype = 1;
-		msg.send_pid = 0;
-		msg.type = TYPE_CHILD_READY;
-		msgsnd(this->curr_io_burst->getChildMsgId(), &msg, sizeof(msg) - sizeof(msg.mtype), 0);
-		this->curr_io_burst = NULL;
 	}
 }
 
@@ -148,22 +129,6 @@ void ParentProcess::manageCPU(void) {
 		msg.type = TYPE_RUN_CPU_PROCESS;
 		msgsnd(this->curr_cpu_burst->getChildMsgId(), &msg, sizeof(msg) - sizeof(msg.mtype), 0);
 		this->curr_cpu_quantum++;
-	}
-}
-
-void ParentProcess::manageIO(void) {
-	msg_load msg;
-
-	if (!this->io_queue.empty() && this->curr_io_burst == NULL) {
-		this->curr_io_burst = this->io_queue.front();
-		this->io_queue.pop();
-	}
-
-	if (this->curr_io_burst) {
-		msg.mtype = 1;
-		msg.send_pid = 0;
-		msg.type = TYPE_RUN_IO_PROCESS;
-		msgsnd(this->curr_io_burst->getChildMsgId(), &msg, sizeof(msg) - sizeof(msg.mtype), 0);
 	}
 }
 
@@ -188,27 +153,6 @@ void ParentProcess::writeLog(void) {
 			this->ready_queue.pop();
 		} while (start != this->ready_queue.front());
 	}
-
-	if (this->curr_io_burst)
-		this->log_file_stream << "[" << this->gtimer << "] CURRENT IO PROCESS : " << *(this->curr_io_burst) << endl;
-	else
-		this->log_file_stream << "[" << this->gtimer << "] CURRENT IO PROCESS : NONE" << endl;
-
-	if (this->io_queue.empty())
-		this->log_file_stream << "[" << this->gtimer << "] IO QUEUE IS EMPTY" << endl;
-	else {
-		ChildProcess *start = this->io_queue.front();
-		do {
-			this->log_file_stream << *(this->io_queue.front()) << endl;
-			this->io_queue.push(this->io_queue.front());
-			this->io_queue.pop();
-		} while (start != this->io_queue.front());
-	}
-
-	this->log_file_stream << "[" << this->gtimer << "] CURRENT ALL PROCESS" << endl;
-	for (int i = 0; i < PROCESS_NUM; i++)
-		this->log_file_stream << this->plist[i] << endl;
-	this->log_file_stream << endl;
 }
 
 const char *ParentProcess::ParamException::what() const throw() {

@@ -9,3 +9,13 @@ PageTable::PageTable(unsigned short start_idx): logical_memory_start_idx(start_i
 		this->valid[i] = false;
 	}
 }
+
+bool PageTable::checkPageFaultHappen(va *va_arr) {
+	(void)va_arr;
+	// for (int i = 0; i < MEMORY_ACCESS_REQUEST_SIZE; i++) {
+	// 	if (this->valid[va_arr[i].page_number - this->logical_memory_start_idx] == false) {
+	// 		return true;
+	// 	}
+	// }
+	return false;
+}

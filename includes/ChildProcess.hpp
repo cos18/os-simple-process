@@ -11,51 +11,47 @@ enum e_state {
 };
 
 typedef struct {
-	long				mtype;
-	int					send_pid;
-	unsigned short		cpu_dur_left;
-	bool				is_io;
-	unsigned short		io_start_time;
-	unsigned short		io_dur;
-	unsigned short		io_dur_left;
-	e_state				state;
+	long						mtype;
+	int							send_pid;
+	unsigned short				operation_cnt;
+	e_state						state;
 } msg_child_info;
 
 class ChildProcess {
 	private:
-		int				pid;
-		int				parent_cpu_send_id;
-		int				parent_io_send_id;
-		int				parent_log_send_id;
-		int				child_recv_id;
+		int						pid;
+		int						parent_cpu_send_id;
+		int						parent_log_send_id;
+		int						child_recv_id;
 
-		unsigned short	cpu_dur;
-		unsigned short	cpu_dur_left;
+		unsigned short			operation_cnt;
 
-		bool			is_io;
-		unsigned short	io_start_time;
-		unsigned short	io_dur;
-		unsigned short	io_dur_left;
+		PageTable				pt;
+		unsigned short			logical_memory_start_idx;
+		va						curr_request_va[10];
+		bool					is_request_pending;
 
-		PageTable		pt;
+		random_device			rd;
+		mt19937					gen;
+		normal_distribution<>	nd_page;
 
 	public:
 		e_state	state;
 
 		ChildProcess();
 
-		const int&		getChildMsgId(void);
-		const e_state&	getState(void);
-		void			setParentMsgId(int idx, int cpu_id, int io_id, int log_id);
-		void			setState(e_state state);
-		void			setPageTable(unsigned short start_idx);
+		const int&				getPID(void);
+		const int&				getChildMsgId(void);
+		const e_state&			getState(void);
+		void					setParentMsgId(int idx, int cpu_id, int log_id);
+		void					setState(e_state state);
+		void					setLogicalMemoryStartIdx(unsigned short start_idx);
 
-		void			startProcess(void);
-		void			watch(void);
-		void			runCPUBurst(void);
-		void			runIOBurst(void);
-		void			sendParentInfo(void);
-		void			update(int log_msg_id);
+		void					startProcess(void);
+		void					watch(void);
+		void					runCPUBurst(void);
+		void					sendParentInfo(void);
+		void					update(int log_msg_id);
 
-		friend ostream&	operator<<(ostream &ost, ChildProcess &pos);
+		friend ostream&			operator<<(ostream &ost, ChildProcess &pos);
 };
