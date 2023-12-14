@@ -1,4 +1,4 @@
-#include "scheduler.hpp"
+#include "paging.hpp"
 
 ChildProcess::ChildProcess(void) {
 	this->state = STATE_NEW;
@@ -28,6 +28,10 @@ void ChildProcess::setParentMsgId(int idx, int cpu_id, int io_id, int log_id) {
 
 void ChildProcess::setState(e_state state) {
 	this->state = state;
+}
+
+void ChildProcess::setPageTable(unsigned short start_idx) {
+	this->pt = PageTable(start_idx);
 }
 
 void ChildProcess::startProcess(void) {

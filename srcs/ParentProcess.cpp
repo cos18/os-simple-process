@@ -1,4 +1,4 @@
-#include "scheduler.hpp"
+#include "paging.hpp"
 
 ParentProcess::~ParentProcess(void) {
 	if (getpid() == this->pid) {
@@ -42,11 +42,20 @@ void ParentProcess::init(int argc, char **argv) {
 	this->log_file_stream.open("paging_dump.txt", ios_base::trunc);
 	this->log_msg_id = msgget((key_t)(MSG_ID_LOG), IPC_CREAT|0666);
 
+	int nd_max = BACKING_STORE_PAGE_SIZE - PAGE_TABLE_SIZE, start_idx;
+	random_device rd;
+    mt19937 gen(rd());
+	normal_distribution<double> d(nd_max / 2.0, nd_max / 8.0);
+
 	for (int idx = 0; idx < PROCESS_NUM; idx++) {
 		this->plist[idx].setParentMsgId(idx, this->cpu_msg_id, this->io_msg_id, this->log_msg_id);
 		this->ready_queue.push(this->plist + idx);
 		this->plist[idx].setState(STATE_READY);
 		this->plist[idx].startProcess();
+		do {
+			start_idx = std::round(d(gen));
+		} while (start_idx < 0 || start_idx >= nd_max);
+		this->plist[idx].setPageTable(start_idx);
 	}
 }
 

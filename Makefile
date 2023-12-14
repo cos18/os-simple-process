@@ -10,7 +10,7 @@ BUILDDIR	= ./build/
 BUILDOBJS	= $(addprefix $(BUILDDIR), $(SRCNAMES:.cpp=.o))
 
 CC			= g++
-CCFLAG		= -g -Wall -Wextra -Werror
+CCFLAG		= -g -Wall -Wextra -Werror -Wno-c++11-extensions
 RM			= rm -f
 
 all:			$(BUILDDIR) $(NAME)

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "scheduler.hpp"
+#include "paging.hpp"
 
 class ParentProcess {
 	private:
@@ -23,6 +23,7 @@ class ParentProcess {
 
 		int						log_msg_id;
 		ofstream				log_file_stream;
+		PhysicalMemory			pm;
 	
 	public:
 		~ParentProcess(void);

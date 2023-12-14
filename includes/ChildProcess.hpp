@@ -1,5 +1,7 @@
 #pragma once
 
+#include "paging.hpp"
+
 enum e_state {
 	STATE_NEW,
 	STATE_READY,
@@ -35,6 +37,8 @@ class ChildProcess {
 		unsigned short	io_dur;
 		unsigned short	io_dur_left;
 
+		PageTable		pt;
+
 	public:
 		e_state	state;
 
@@ -44,6 +48,7 @@ class ChildProcess {
 		const e_state&	getState(void);
 		void			setParentMsgId(int idx, int cpu_id, int io_id, int log_id);
 		void			setState(e_state state);
+		void			setPageTable(unsigned short start_idx);
 
 		void			startProcess(void);
 		void			watch(void);

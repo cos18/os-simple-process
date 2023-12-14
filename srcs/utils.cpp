@@ -1,4 +1,4 @@
-#include "scheduler.hpp"
+#include "paging.hpp"
 
 void printInfo(void) {
 	cout << "Usage : ./paging (time quantum) (logging time tick)\n\n";
