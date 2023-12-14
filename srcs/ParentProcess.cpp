@@ -78,7 +78,6 @@ void ParentProcess::listener(void) {
 	this->cleanup();
 	this->manageCPU();
 
-	// TODO: Need to change fixed time ticks
 	if (this->gtimer == SIMULATE_TIME_TICK) {
 		cout << "END!!\n";
 		exit(0);
@@ -95,21 +94,23 @@ void ParentProcess::cleanup(void) {
 
 	msg.type = TYPE_CHILD_READY;
 	ssize_t msg_size = msgrcv(this->cpu_msg_id, &msg, sizeof(msg) - sizeof(msg.mtype), 1, IPC_NOWAIT);
-	if (msg_size > 0 || (this->curr_cpu_burst && (this->curr_cpu_quantum == this->time_quantum))) {
-		switch (msg.type) {
-			case TYPE_CHILD_END:
-				msg.mtype = 1;
-				msg.send_pid = 0;
-				msg.type = TYPE_TERMINATE_CHILD;
-				msgsnd(this->curr_cpu_burst->getChildMsgId(), &msg, sizeof(msg) - sizeof(msg.mtype), 0);
-				break;
-			default:
-				this->ready_queue.push(this->curr_cpu_burst);
-				msg.mtype = 1;
-				msg.send_pid = 0;
-				msg.type = TYPE_CHILD_READY;
-				msgsnd(this->curr_cpu_burst->getChildMsgId(), &msg, sizeof(msg) - sizeof(msg.mtype), 0);
+	if (msg_size > 0 && (msg.type == TYPE_PAGE_REQUEST)) {
+		msg.mtype = 1;
+		msg.send_pid = 0;
+		if (this->curr_cpu_burst->pt.checkPageVaild(msg.page_idx, this->gtimer)) {
+			msg.type = TYPE_PAGE_HIT;
+			// TODO: set pointer to msg
+		} else {
+			msg.type = TYPE_PAGE_FAULT;
 		}
+		msgsnd(this->curr_cpu_burst->getChildMsgId(), &msg, sizeof(msg) - sizeof(msg.mtype), 0);
+	}
+	if (this->curr_cpu_quantum == this->time_quantum) {
+		this->ready_queue.push(this->curr_cpu_burst);
+		msg.mtype = 1;
+		msg.send_pid = 0;
+		msg.type = TYPE_CHILD_READY;
+		msgsnd(this->curr_cpu_burst->getChildMsgId(), &msg, sizeof(msg) - sizeof(msg.mtype), 0);
 		this->curr_cpu_burst = NULL;
 		this->curr_cpu_quantum = 0;
 	}
@@ -123,13 +124,11 @@ void ParentProcess::manageCPU(void) {
 		this->ready_queue.pop();
 	}
 
-	if (this->curr_cpu_burst) {
-		msg.mtype = 1;
-		msg.send_pid = 0;
-		msg.type = TYPE_RUN_CPU_PROCESS;
-		msgsnd(this->curr_cpu_burst->getChildMsgId(), &msg, sizeof(msg) - sizeof(msg.mtype), 0);
-		this->curr_cpu_quantum++;
-	}
+	msg.mtype = 1;
+	msg.send_pid = 0;
+	msg.type = TYPE_RUN_CPU_PROCESS;
+	msgsnd(this->curr_cpu_burst->getChildMsgId(), &msg, sizeof(msg) - sizeof(msg.mtype), 0);
+	this->curr_cpu_quantum++;
 }
 
 void ParentProcess::writeLog(void) {

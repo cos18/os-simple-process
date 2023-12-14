@@ -2,6 +2,27 @@
 
 #include "paging.hpp"
 
+enum msg_type {
+	TYPE_RUN_CPU_PROCESS,
+	TYPE_PAGE_REQUEST,
+	TYPE_PAGE_FAULT,
+	TYPE_PAGE_HIT,
+	TYPE_CHILD_READY,
+	TYPE_CHILD_WAITING,
+	TYPE_CHILD_END,
+	TYPE_CHILD_INFO,
+	TYPE_TERMINATE_CHILD,
+	TYPE_KILL_PROCESS
+};
+
+typedef struct {
+	long			mtype;
+	int				send_pid;
+	unsigned short	page_idx[MEMORY_ACCESS_REQUEST_SIZE];
+	char*			page_ptr[MEMORY_ACCESS_REQUEST_SIZE];
+	msg_type		type;
+} msg_load;
+
 enum e_state {
 	STATE_NEW,
 	STATE_READY,
@@ -26,7 +47,6 @@ class ChildProcess {
 
 		unsigned short			operation_cnt;
 
-		PageTable				pt;
 		unsigned short			logical_memory_start_idx;
 		va						curr_request_va[10];
 		bool					is_request_pending;
@@ -36,7 +56,8 @@ class ChildProcess {
 		normal_distribution<>	nd_page;
 
 	public:
-		e_state	state;
+		e_state					state;
+		PageTable				pt;
 
 		ChildProcess();
 
@@ -50,6 +71,7 @@ class ChildProcess {
 		void					startProcess(void);
 		void					watch(void);
 		void					runCPUBurst(void);
+		void					runOperation(msg_load &msg);
 		void					sendParentInfo(void);
 		void					update(int log_msg_id);
 

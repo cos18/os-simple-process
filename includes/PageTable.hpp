@@ -17,5 +17,5 @@ class PageTable {
 		PageTable(void);
 		PageTable(unsigned short start_idx);
 
-		bool	checkPageFaultHappen(va *va_arr);
+		bool	checkPageVaild(unsigned short *page_idx_arr, unsigned short g_timer);
 };

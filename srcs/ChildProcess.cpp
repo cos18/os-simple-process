@@ -56,6 +56,13 @@ void ChildProcess::watch(void) {
 				case TYPE_RUN_CPU_PROCESS:
 					this->runCPUBurst();
 					break;
+				case TYPE_PAGE_FAULT:
+					this->state = STATE_WAITING;
+					this->is_request_pending = true;
+					break;
+				case TYPE_PAGE_HIT:
+					this->runOperation(msg);
+					break;
 				case TYPE_CHILD_READY:
 					this->state = STATE_READY;
 					break;
@@ -80,11 +87,10 @@ void ChildProcess::watch(void) {
 }
 
 void ChildProcess::runCPUBurst(void) {
+	msg_load		msg;
 	set<unsigned short>	page_idx_set;
 
 	this->state = STATE_RUNNING;
-
-	
 
 	if (!(this->is_request_pending)) {
 		while (page_idx_set.size() < 10) {
@@ -101,14 +107,20 @@ void ChildProcess::runCPUBurst(void) {
 			it++;
 		}
 	}
-	
-	if (this->pt.checkPageFaultHappen(this->curr_request_va)) {
-		this->state = STATE_WAITING;
-		this->is_request_pending = true;
-	} else {
-		this->operation_cnt++;
-		this->is_request_pending = false;
-	}
+
+	msg.mtype = 1;
+	msg.send_pid = getpid();
+	for (int idx = 0; idx < 10; idx++)
+		msg.page_idx[idx] = this->curr_request_va[idx].page_number;
+	msg.type = TYPE_PAGE_REQUEST;
+	msgsnd(this->parent_cpu_send_id, &msg, sizeof(msg) - sizeof(msg.mtype), 0);
+}
+
+void ChildProcess::runOperation(msg_load &msg) {
+	this->operation_cnt++;
+	this->is_request_pending = false;
+	(void)msg;
+	// TODO: Run Operation
 }
 
 void ChildProcess::update(int log_msg_id) {

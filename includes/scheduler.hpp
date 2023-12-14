@@ -23,31 +23,10 @@ using namespace std;
 #define IO_PROBABILITY_PERCENTILE 50
 #define IO_MAX_DUR 5
 
-enum msg_type {
-	TYPE_RUN_CPU_PROCESS,
-	TYPE_CHILD_READY,
-	TYPE_CHILD_WAITING,
-	TYPE_CHILD_END,
-	TYPE_CHILD_INFO,
-	TYPE_TERMINATE_CHILD,
-	TYPE_KILL_PROCESS,
-	STATE_REQUEST,
-	STATE_RESPONSE_PAGE_FAULT,
-	STATE_RESPONSE_PAGE_HIT
-};
-
 enum msg_id {
 	MSG_ID_CPU,
 	MSG_ID_LOG,
 	MSG_ID_CHILDS
 };
-	
-typedef struct {
-	long			mtype;
-	int				send_pid;
-	unsigned short	page_idx[MEMORY_ACCESS_REQUEST_SIZE];
-	char*			page_ptr[MEMORY_ACCESS_REQUEST_SIZE];
-	msg_type		type;
-} msg_load;
 
 void printInfo(void);
