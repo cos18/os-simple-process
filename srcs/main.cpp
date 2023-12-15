@@ -7,7 +7,7 @@ void alarmListener(void) {
 }
 
 int main(int argc, char **argv) {
-	checkBackingStore();
+	checkBackingStorePath();
 	if (argc == 2 && !strcmp(argv[1], "reset")) {
 		resetBackingStore();
 		exit(0);

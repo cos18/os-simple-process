@@ -60,6 +60,10 @@
 		"thread": "cpp",
 		"iomanip": "cpp",
 		"__tree": "cpp",
-		"set": "cpp"
+		"set": "cpp",
+		"format": "cpp",
+		"list": "cpp",
+		"stack": "cpp",
+		"random": "cpp"
 	}
 }

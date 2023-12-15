@@ -2,27 +2,6 @@
 
 #include "paging.hpp"
 
-enum msg_type {
-	TYPE_RUN_CPU_PROCESS,
-	TYPE_PAGE_REQUEST,
-	TYPE_PAGE_FAULT,
-	TYPE_PAGE_HIT,
-	TYPE_CHILD_READY,
-	TYPE_CHILD_WAITING,
-	TYPE_CHILD_END,
-	TYPE_CHILD_INFO,
-	TYPE_TERMINATE_CHILD,
-	TYPE_KILL_PROCESS
-};
-
-typedef struct {
-	long			mtype;
-	int				send_pid;
-	unsigned short	page_idx[MEMORY_ACCESS_REQUEST_SIZE];
-	char*			page_ptr[MEMORY_ACCESS_REQUEST_SIZE];
-	msg_type		type;
-} msg_load;
-
 enum e_state {
 	STATE_NEW,
 	STATE_READY,

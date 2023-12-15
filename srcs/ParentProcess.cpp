@@ -91,21 +91,18 @@ void ParentProcess::listener(void) {
 
 void ParentProcess::cleanup(void) {
 	msg_load msg;
+	bool is_valid = true;
 
 	msg.type = TYPE_CHILD_READY;
 	ssize_t msg_size = msgrcv(this->cpu_msg_id, &msg, sizeof(msg) - sizeof(msg.mtype), 1, IPC_NOWAIT);
 	if (msg_size > 0 && (msg.type == TYPE_PAGE_REQUEST)) {
 		msg.mtype = 1;
 		msg.send_pid = 0;
-		if (this->curr_cpu_burst->pt.checkPageVaild(msg.page_idx, this->gtimer)) {
-			msg.type = TYPE_PAGE_HIT;
-			// TODO: set pointer to msg
-		} else {
-			msg.type = TYPE_PAGE_FAULT;
-		}
+		is_valid = this->curr_cpu_burst->pt.checkPageValid(msg, this->pm);
+		msg.type = is_valid ? TYPE_PAGE_HIT : TYPE_PAGE_FAULT;
 		msgsnd(this->curr_cpu_burst->getChildMsgId(), &msg, sizeof(msg) - sizeof(msg.mtype), 0);
 	}
-	if (this->curr_cpu_quantum == this->time_quantum) {
+	if (is_valid && this->curr_cpu_quantum == this->time_quantum) {
 		this->ready_queue.push(this->curr_cpu_burst);
 		msg.mtype = 1;
 		msg.send_pid = 0;

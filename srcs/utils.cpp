@@ -8,7 +8,7 @@ void printInfo(void) {
 	cout << "OR just run './paging reset' to reset backing store" << endl;
 }
 
-void checkBackingStore(void) {
+void checkBackingStorePath(void) {
 	struct stat st;
 	if (stat("backing_store", &st) == -1) {
 		mkdir("backing_store", 0777);
@@ -17,4 +17,35 @@ void checkBackingStore(void) {
 
 void resetBackingStore(void) {
 	system("cd backing_store && rm -rf `ls | grep -v .gitignore`");
+}
+
+string getStoreFileName(unsigned short page_idx) {
+	string store_file_name("backing_store/");
+	store_file_name.append(to_string(page_idx));
+	return store_file_name;
+}
+
+void checkBackingStore(unsigned short page_idx) {
+	string store_file_name = getStoreFileName(page_idx);
+	
+	if (access( store_file_name.c_str(), F_OK ) == -1) {
+		ofstream target(store_file_name);
+		for (int i = 0; i < PAGE_SIZE; i++)
+			target << "0 ";
+		target.close();
+	}
+}
+
+void insertMemory(unsigned short* memory, unsigned short page_idx) {
+	ifstream target(getStoreFileName(page_idx));
+	for (int i = 0; i < PAGE_SIZE; i++)
+		target >> *(memory + i);
+	target.close();
+}
+
+void writeStoreData(unsigned short* memory, unsigned short page_idx) {
+	ofstream target(getStoreFileName(page_idx), ios_base::trunc);
+	for (int i = 0; i < PAGE_SIZE; i++)
+		target << *(memory + i) << ' ';
+	target.close();
 }
