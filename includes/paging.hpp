@@ -12,7 +12,7 @@
 #define PHYSICAL_MEMORY_PAGE_SIZE 256
 #define PAGE_TABLE_SIZE 128
 #define MEMORY_ACCESS_REQUEST_SIZE 10
-#define SIMULATE_TIME_TICK 100
+#define SIMULATE_TIME_TICK 10000
 
 #include <stdlib.h>
 #include <exception>
@@ -21,7 +21,9 @@
 #include <sys/msg.h>
 #include <queue>
 #include <sys/time.h>
+#include <sys/wait.h>
 #include <csignal>
+#include <cstring>
 #include <fstream>
 #include <thread>
 #include <chrono>
@@ -53,3 +55,4 @@ void resetBackingStore(void);
 void checkBackingStore(unsigned short page_idx);
 void insertMemory(unsigned short* memory, unsigned short page_idx);
 void writeStoreData(unsigned short* memory, unsigned short page_idx);
+unsigned short* mmu(unsigned short* memory, unsigned short page_idx);

@@ -14,7 +14,6 @@ class ParentProcess {
 		ChildProcess			*curr_cpu_burst;
 		unsigned short			curr_cpu_quantum;
 
-		//int					mem_msg_id;
 		PhysicalMemory			pm;
 
 		int						log_msg_id;

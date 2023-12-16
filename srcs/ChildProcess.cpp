@@ -4,6 +4,11 @@ ChildProcess::ChildProcess(void) {
 	this->state = STATE_NEW;
 	this->operation_cnt = 0;
 	this->is_request_pending = false;
+	this->memory = NULL;
+}
+
+ChildProcess::~ChildProcess(void) {
+	if (this->memory) shmdt(this->memory);
 }
 
 const int& ChildProcess::getPID(void) {
@@ -41,6 +46,8 @@ void ChildProcess::startProcess(void) {
 			this->logical_memory_start_idx + PAGE_TABLE_SIZE / 2.0,
 			PAGE_TABLE_SIZE / 8.0
 		);
+		const int shmid = shmget(SHM_KEY, PHYSICAL_MEMORY_PAGE_SIZE * PAGE_SIZE * sizeof(unsigned short), IPC_CREAT | 0666);
+		this->memory = (unsigned short*)shmat(shmid, NULL, 0);
 		this->watch();
 	} else {
 		this->pt = PageTable(this->logical_memory_start_idx);
@@ -117,10 +124,15 @@ void ChildProcess::runCPUBurst(void) {
 }
 
 void ChildProcess::runOperation(msg_load &msg) {
+	unsigned short* target;
+
 	this->operation_cnt++;
 	this->is_request_pending = false;
-	(void)msg;
-	// TODO: Run Operation
+	
+	for (int idx = 0; idx < MEMORY_ACCESS_REQUEST_SIZE; idx++) {
+		target = mmu(this->memory, msg.physical_idx[idx]) + this->curr_request_va[idx].page_offset;
+		(*target)++;
+	}
 }
 
 void ChildProcess::update(int log_msg_id) {

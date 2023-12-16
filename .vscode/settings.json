@@ -64,6 +64,9 @@
 		"format": "cpp",
 		"list": "cpp",
 		"stack": "cpp",
-		"random": "cpp"
+		"random": "cpp",
+		"memory_resource": "cpp",
+		"memory": "cpp",
+		"version": "cpp"
 	}
 }

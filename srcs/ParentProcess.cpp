@@ -27,7 +27,7 @@ void ParentProcess::init(int argc, char **argv) {
 	this->time_log = atoi(argv[2]);
 	if (this->time_quantum <= 0 || this->time_log <= 0)
 		throw ParentProcess::ParamException();
-	this->time_unit = 100; // TODO: fix time unit
+	this->time_unit = 10;
 
 	this->gtimer = 0;
 	this->pid = getpid();
@@ -102,7 +102,7 @@ void ParentProcess::cleanup(void) {
 		msg.type = is_valid ? TYPE_PAGE_HIT : TYPE_PAGE_FAULT;
 		msgsnd(this->curr_cpu_burst->getChildMsgId(), &msg, sizeof(msg) - sizeof(msg.mtype), 0);
 	}
-	if (is_valid && this->curr_cpu_quantum == this->time_quantum) {
+	if (this->curr_cpu_quantum == this->time_quantum) {
 		this->ready_queue.push(this->curr_cpu_burst);
 		msg.mtype = 1;
 		msg.send_pid = 0;

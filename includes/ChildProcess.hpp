@@ -33,12 +33,14 @@ class ChildProcess {
 		random_device			rd;
 		mt19937					gen;
 		normal_distribution<>	nd_page;
+		unsigned short*			memory;
 
 	public:
 		e_state					state;
 		PageTable				pt;
 
 		ChildProcess();
+		~ChildProcess();
 
 		const int&				getPID(void);
 		const int&				getChildMsgId(void);

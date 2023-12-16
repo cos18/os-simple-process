@@ -17,7 +17,7 @@ bool PageTable::checkPageValid(msg_load &msg, PhysicalMemory &pm) {
 		table_idx = msg.page_idx[i] - this->logical_memory_start_idx;
 		if (result && !this->valid[table_idx]) {
 			result = false;
-			pm.validPage(msg.page_idx[i], this);
+			this->page_number[table_idx] = pm.validPage(msg.page_idx[i], this);
 			this->valid[table_idx] = true;
 		}
 	}

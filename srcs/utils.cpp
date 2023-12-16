@@ -49,3 +49,8 @@ void writeStoreData(unsigned short* memory, unsigned short page_idx) {
 		target << *(memory + i) << ' ';
 	target.close();
 }
+
+unsigned short* mmu(unsigned short* const memory, unsigned short page_idx) {
+	if (memory == NULL) return NULL;
+	return memory + page_idx * PAGE_SIZE;
+}
