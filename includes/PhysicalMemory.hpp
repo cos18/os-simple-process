@@ -22,5 +22,6 @@ class PhysicalMemory {
 		PhysicalMemory(void);
 		~PhysicalMemory(void);
 
+		void					storeAllMemory(void);
 		unsigned short			validPage(unsigned short page_idx, PageTable *pt);
 };

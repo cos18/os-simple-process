@@ -18,7 +18,15 @@ PhysicalMemory::~PhysicalMemory(void) {
 	freeList(this->free_page_list_head);
 }
 
-// TODO
+void PhysicalMemory::storeAllMemory(void) {
+	free_page_list* tmp = this->free_page_list_head;
+	while (tmp) {
+		if (tmp->backing_store_idx != USHRT_MAX)
+			writeStoreData(mmu(this->memory, tmp->physical_page_number), tmp->backing_store_idx);
+		tmp = tmp->next;
+	}
+}
+
 unsigned short PhysicalMemory::validPage(unsigned short page_idx, PageTable *pt) {
 	free_page_list* target = findListNode(this->free_page_list_head, page_idx);
 	unsigned short*	addr = target ? mmu(this->memory, target->physical_page_number) : NULL;

@@ -79,6 +79,7 @@ void ParentProcess::listener(void) {
 
 	if (this->gtimer == SIMULATE_TIME_TICK) {
 		cout << "END!!\n";
+		this->pm.storeAllMemory();
 		exit(0);
 	}
 
