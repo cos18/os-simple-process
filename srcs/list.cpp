@@ -1,7 +1,7 @@
 #include "paging.hpp"
 
-free_page_list*	createFreePageList(unsigned short page_cnt) {
-	auto result = new free_page_list;
+free_page_list*	createFreePageList() {
+	free_page_list* result = (free_page_list *)malloc(sizeof(free_page_list));
 	result->physical_page_number = 0;
 	result->backing_store_idx = USHRT_MAX;
 	result->prev = NULL;
@@ -10,8 +10,8 @@ free_page_list*	createFreePageList(unsigned short page_cnt) {
 		result->subscribe_table[idx] = NULL;
 
 	free_page_list* tmp = result;
-	for (int i = 1; i < page_cnt; i++) {
-		tmp->next = new free_page_list;
+	for (int i = 1; i < PHYSICAL_MEMORY_PAGE_SIZE; i++) {
+		tmp->next = (free_page_list *)malloc(sizeof(free_page_list));
 		tmp->next->physical_page_number = i;
 		tmp->next->backing_store_idx = USHRT_MAX;
 		for (int idx = 0; idx < PROCESS_NUM; idx++)
@@ -21,18 +21,6 @@ free_page_list*	createFreePageList(unsigned short page_cnt) {
 		tmp = tmp->next;
 	}
 	return result;
-}
-
-void pushListNodeToLast(free_page_list* target) {
-	if (target->next) {
-		if (target->prev) target->prev->next = target->next;
-		target->next->prev = target->prev;
-		free_page_list* last = target;
-		while (last->next != NULL) last = last->next;
-		last->next = target;
-		target->prev = last;
-		target->next = NULL;
-	}
 }
 
 free_page_list*	findListNode(free_page_list* begin, unsigned short target) {
@@ -60,6 +48,14 @@ void resetListNode(free_page_list* target) {
 		}
 
 	}
+}
+
+void printList(free_page_list* target, ofstream &log_file_stream) {
+	while (target != NULL) {
+		log_file_stream << target->physical_page_number << " ";
+		target = target->next;
+	}
+	log_file_stream << endl;
 }
 
 void freeList(free_page_list* target) {

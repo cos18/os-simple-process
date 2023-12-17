@@ -75,6 +75,7 @@ void ParentProcess::run(void) {
 void ParentProcess::listener(void) {
 	cout << "Parent are running at " << this->gtimer << " tick (" << this->gtimer * this->time_unit << "ms)\n";
 
+	this->log_file_stream << "[" << this->gtimer << "] LOG START" << endl;
 	this->cleanup();
 	this->manageCPU();
 
@@ -83,9 +84,7 @@ void ParentProcess::listener(void) {
 		exit(0);
 	}
 
-	if (this->gtimer % this->time_log == 0)
-		this->writeLog();
-
+	this->log_file_stream << "[" << this->gtimer << "] LOG END" << endl << endl;
 	this->gtimer++;
 }
 
@@ -96,9 +95,14 @@ void ParentProcess::cleanup(void) {
 	msg.type = TYPE_CHILD_READY;
 	ssize_t msg_size = msgrcv(this->cpu_msg_id, &msg, sizeof(msg) - sizeof(msg.mtype), 1, IPC_NOWAIT);
 	if (msg_size > 0 && (msg.type == TYPE_PAGE_REQUEST)) {
+		this->log_file_stream << "[" << this->gtimer << "] Receive PageTable request at " << msg.send_pid << endl;
+		for (int idx = 0; idx < MEMORY_ACCESS_REQUEST_SIZE; idx++) {
+			this->log_file_stream << msg.page_idx[idx] << " ";
+		}
+		this->log_file_stream << endl;
+		is_valid = this->curr_cpu_burst->pt.checkPageValid(msg, this->pm, this->log_file_stream);
 		msg.mtype = 1;
 		msg.send_pid = 0;
-		is_valid = this->curr_cpu_burst->pt.checkPageValid(msg, this->pm);
 		msg.type = is_valid ? TYPE_PAGE_HIT : TYPE_PAGE_FAULT;
 		msgsnd(this->curr_cpu_burst->getChildMsgId(), &msg, sizeof(msg) - sizeof(msg.mtype), 0);
 	}
@@ -126,29 +130,6 @@ void ParentProcess::manageCPU(void) {
 	msg.type = TYPE_RUN_CPU_PROCESS;
 	msgsnd(this->curr_cpu_burst->getChildMsgId(), &msg, sizeof(msg) - sizeof(msg.mtype), 0);
 	this->curr_cpu_quantum++;
-}
-
-void ParentProcess::writeLog(void) {
-	for (int i = 0; i < PROCESS_NUM; i++)
-		this->plist[i].update(this->log_msg_id);
-
-	this->log_file_stream << "[" << this->gtimer << "] LOG START" << endl;
-	if (this->curr_cpu_burst)
-		this->log_file_stream << "[" << this->gtimer << "] CURRENT RUNNING PROCESS : " << *(this->curr_cpu_burst) << endl;
-	else
-		this->log_file_stream << "[" << this->gtimer << "] CURRENT RUNNING PROCESS : NONE" << endl;
-
-	if (this->ready_queue.empty())
-		this->log_file_stream << "[" << this->gtimer << "] READY QUEUE IS EMPTY" << endl;
-	else {
-		this->log_file_stream << "[" << this->gtimer << "] READY QUEUE LIST" << endl;
-		ChildProcess *start = this->ready_queue.front();
-		do {
-			this->log_file_stream << *(this->ready_queue.front()) << endl;
-			this->ready_queue.push(this->ready_queue.front());
-			this->ready_queue.pop();
-		} while (start != this->ready_queue.front());
-	}
 }
 
 const char *ParentProcess::ParamException::what() const throw() {

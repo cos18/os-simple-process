@@ -23,5 +23,4 @@ class PhysicalMemory {
 		~PhysicalMemory(void);
 
 		unsigned short			validPage(unsigned short page_idx, PageTable *pt);
-		void					subscribePage(char* page_ptr, PageTable *pt);
 };

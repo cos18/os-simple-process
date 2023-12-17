@@ -38,6 +38,6 @@ class PageTable {
 		PageTable(void);
 		PageTable(unsigned short start_idx);
 
-		bool	checkPageValid(msg_load &msg, PhysicalMemory &pm);
+		bool	checkPageValid(msg_load &msg, PhysicalMemory &pm, ofstream &log_file_stream);
 		void	makePageInvalid(unsigned short page_number);
 };
