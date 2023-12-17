@@ -5,8 +5,6 @@
 class ParentProcess {
 	private:
 		unsigned short			time_quantum;
-		unsigned short			time_log;
-		unsigned short			time_unit;
 		ChildProcess			*plist;
 
 		int						cpu_msg_id;

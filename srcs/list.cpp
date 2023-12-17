@@ -50,14 +50,6 @@ void resetListNode(free_page_list* target) {
 	}
 }
 
-void printList(free_page_list* target, ofstream &log_file_stream) {
-	while (target != NULL) {
-		log_file_stream << target->physical_page_number << " ";
-		target = target->next;
-	}
-	log_file_stream << endl;
-}
-
 void freeList(free_page_list* target) {
 	free_page_list* tmp;
 	while (target != NULL) {

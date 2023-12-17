@@ -1,10 +1,11 @@
 #include "paging.hpp"
 
 void printInfo(void) {
-	cout << "Usage : ./paging (time quantum) (logging time tick)\n\n";
+	cout << "Usage : ./paging (time quantum unit)\n\n";
 	cout << "Example" << endl;
-	cout << "./paging 3 1" << endl;
-	cout << "=> paging simulator will run with 3 unit time quantum and write log with 1 unit interval" << endl << endl;
+	cout << "./paging 3" << endl;
+	cout << "=> paging simulator will run with 3 unit time quantum" << endl;
+	cout << "Default time quantum unit is 10ms each" << endl << endl;
 	cout << "OR just run './paging reset' to reset backing store" << endl;
 }
 

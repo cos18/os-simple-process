@@ -21,13 +21,11 @@ ParentProcess::~ParentProcess(void) {
 }
 
 void ParentProcess::init(int argc, char **argv) {
-	if (argc != 3) throw ParentProcess::ParamException();
+	if (argc != 2) throw ParentProcess::ParamException();
 
 	this->time_quantum = atoi(argv[1]);
-	this->time_log = atoi(argv[2]);
-	if (this->time_quantum <= 0 || this->time_log <= 0)
+	if (this->time_quantum <= 0)
 		throw ParentProcess::ParamException();
-	this->time_unit = 10;
 
 	this->gtimer = 0;
 	this->pid = getpid();
@@ -62,8 +60,8 @@ void ParentProcess::run(void) {
 
 	this->listener();
 
-	it_val.it_value.tv_sec = this->time_unit / 1000;
-	it_val.it_value.tv_usec = (this->time_unit * 1000) % 1000000;
+	it_val.it_value.tv_sec = TIME_UNIT / 1000;
+	it_val.it_value.tv_usec = (TIME_UNIT * 1000) % 1000000;
 	it_val.it_interval = it_val.it_value;
 	if (setitimer(ITIMER_REAL, &it_val, NULL) == -1) {
 		perror("error calling setitimer()");
@@ -73,7 +71,7 @@ void ParentProcess::run(void) {
 }
 
 void ParentProcess::listener(void) {
-	cout << "Parent are running at " << this->gtimer << " tick (" << this->gtimer * this->time_unit << "ms)\n";
+	cout << "Parent are running at " << this->gtimer << " tick (" << this->gtimer * TIME_UNIT << "ms)\n";
 
 	this->log_file_stream << "[" << this->gtimer << "] LOG START" << endl;
 	this->cleanup();
@@ -96,6 +94,7 @@ void ParentProcess::cleanup(void) {
 	ssize_t msg_size = msgrcv(this->cpu_msg_id, &msg, sizeof(msg) - sizeof(msg.mtype), 1, IPC_NOWAIT);
 	if (msg_size > 0 && (msg.type == TYPE_PAGE_REQUEST)) {
 		this->log_file_stream << "[" << this->gtimer << "] Receive PageTable request at " << msg.send_pid << endl;
+		this->log_file_stream << "PageTable request: ";
 		for (int idx = 0; idx < MEMORY_ACCESS_REQUEST_SIZE; idx++) {
 			this->log_file_stream << msg.page_idx[idx] << " ";
 		}
@@ -105,6 +104,11 @@ void ParentProcess::cleanup(void) {
 		msg.send_pid = 0;
 		msg.type = is_valid ? TYPE_PAGE_HIT : TYPE_PAGE_FAULT;
 		msgsnd(this->curr_cpu_burst->getChildMsgId(), &msg, sizeof(msg) - sizeof(msg.mtype), 0);
+		if (!is_valid) {
+			this->ready_queue.push(this->curr_cpu_burst);
+			this->curr_cpu_burst = NULL;
+			this->curr_cpu_quantum = 0;
+		}
 	}
 	if (this->curr_cpu_quantum == this->time_quantum) {
 		this->ready_queue.push(this->curr_cpu_burst);
